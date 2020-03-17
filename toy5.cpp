@@ -8,7 +8,7 @@
 using namespace std;
 
 template <typename T>
-void draw(const T& x, ostream& out, size_t position)
+void drawTemplate(const T& x, ostream& out, size_t position)
 { out << string(position, ' ') << x << endl; }
 
 class object_t {
@@ -16,20 +16,20 @@ public:
     template <typename T>
     object_t(T x) : self_(make_shared<model<T>>(move(x))) { }
 
-    friend void draw(const object_t& x, ostream& out, size_t position)
-    { x.self_->draw_(out, position); }
+    friend void drawTemplate(const object_t& x, ostream& out, size_t position)
+    { x.self_->drawConcept(out, position); }
 
 private:
     struct concept_t {
         virtual ~concept_t() = default;
-        virtual void draw_(ostream&, size_t) const = 0;
+        virtual void drawConcept(ostream&, size_t) const = 0;
     };
     template <typename T>
     struct model : concept_t {
         model(T x) : data_(move(x)) { }
 
-        void draw_(ostream& out, size_t position) const
-        { draw(data_, out, position); }
+        void drawConcept(ostream& out, size_t position) const
+        { drawTemplate(data_, out, position); }
 
         T data_;
     };
@@ -39,11 +39,11 @@ private:
 
 using document_t = vector<object_t>;
 
-void draw(const document_t& x, ostream& out, size_t position)
+void drawTemplate(const document_t& x, ostream& out, size_t position)
 {
     out << string(position, ' ') << "<document>" << endl;
     for (const auto& e : x)
-        draw(e, out, position + 2);
+        drawTemplate(e, out, position + 2);
     out << string(position, ' ') << "</document>" << endl;
 }
 
@@ -56,11 +56,11 @@ const document_t& current(const history_t& x) { assert(x.size()); return x.back(
 
 class my_class_t { };
 
-void draw(const my_class_t&, ostream& out, size_t position)
+void drawTemplate(const my_class_t&, ostream& out, size_t position)
 { out << string(position, ' ') << "my_class_t" << endl; }
 
 ostream& operator<<(ostream& out, const history_t& h)
-{ draw(current(h), out, 0); return out; }
+{ drawTemplate(current(h), out, 0); return out; }
 
 int main ()
 {
@@ -71,7 +71,7 @@ int main ()
     document.emplace_back(document);
     document.emplace_back(my_class_t());
 
-    draw(document, cout, 0);
+    drawTemplate(document, cout, 0);
 #endif /* FISHFOOD */
 
     history_t h(1);
@@ -79,7 +79,7 @@ int main ()
     current(h).emplace_back(0);
     current(h).emplace_back(string("Hello!"));
 
-    draw(current(h), cout, 0);
+    drawTemplate(current(h), cout, 0);
     cout << "--------------------------" << endl;
 
     commit(h);
@@ -88,10 +88,10 @@ int main ()
     current(h).emplace_back(my_class_t());
     current(h)[1] = string("World");
 
-    draw(current(h), cout, 0);
+    drawTemplate(current(h), cout, 0);
     cout << "--------------------------" << endl;
 
     undo(h);
 
-    draw(current(h), cout, 0);
+    drawTemplate(current(h), cout, 0);
 }
