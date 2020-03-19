@@ -9,7 +9,9 @@ using namespace std;
 
 template <typename T>
 void drawTemplate(const T& x, ostream& out, size_t position)
-{ out << string(position, ' ') << x << endl; }
+{
+    out << string(position, ' ') << x << endl;
+}
 
 class object_t {
 public:
@@ -39,13 +41,23 @@ private:
 
 using document_t = vector<object_t>;
 
-void drawTemplate(const document_t& x, ostream& out, size_t position)
+#if 0
+ostream& operator<<(ostream& out, const document_t& d)
+{
+    out << "<document>" << endl;
+    for (const auto& e : d)
+        drawTemplate(e, out, 2);
+    return out << "</document>" << endl;
+}
+#else
+void drawTemplate(const document_t& d, ostream& out, size_t position)
 {
     out << string(position, ' ') << "<document>" << endl;
-    for (const auto& e : x)
+    for (const auto& e : d)
         drawTemplate(e, out, position + 2);
     out << string(position, ' ') << "</document>" << endl;
 }
+#endif
 
 using history_t = vector<document_t>;
 
@@ -59,39 +71,43 @@ class my_class_t { };
 void drawTemplate(const my_class_t&, ostream& out, size_t position)
 { out << string(position, ' ') << "my_class_t" << endl; }
 
+#if 0
 ostream& operator<<(ostream& out, const history_t& h)
 { drawTemplate(current(h), out, 0); return out; }
+#else
+void drawTemplate(const history_t& h, ostream& out, size_t position)
+{
+    #if 1
+    out << string(position, ' ') << "<history>" << endl;
+    for (const auto& e : h)
+        drawTemplate(e, out, position + 2);
+    out << string(position, ' ') << "</history>" << endl;
+    #else
+    drawTemplate(current(h), out, position);
+    #endif
+}
+#endif
 
 int main ()
 {
-#ifdef FISHFOOD
-    document_t document;
-    document.emplace_back(0);
-    document.emplace_back(string("Hello!"));
-    document.emplace_back(document);
-    document.emplace_back(my_class_t());
-
-    drawTemplate(document, cout, 0);
-#endif /* FISHFOOD */
-
     history_t h(1);
 
     current(h).emplace_back(0);
     current(h).emplace_back(string("Hello!"));
 
-    drawTemplate(current(h), cout, 0);
+    drawTemplate(h, cout, 0);
     cout << "--------------------------" << endl;
 
     commit(h);
 
-    current(h).emplace_back(h);
     current(h).emplace_back(my_class_t());
+    current(h).emplace_back(h);
     current(h)[1] = string("World");
 
-    drawTemplate(current(h), cout, 0);
+    drawTemplate(h, cout, 0);
     cout << "--------------------------" << endl;
 
     undo(h);
 
-    drawTemplate(current(h), cout, 0);
+    drawTemplate(h, cout, 0);
 }
