@@ -7,11 +7,9 @@
 
 using namespace std;
 
-template <typename T>
+template <typename T> // overload for multi-line ostream << x
 void drawTemplate(const T& x, ostream& out, size_t position)
-{
-    out << string(position, ' ') << x << endl;
-}
+{ out << string(position, ' ') << x << endl; }
 
 class object_t {
 public:
@@ -41,15 +39,7 @@ private:
 
 using document_t = vector<object_t>;
 
-#if 0
-ostream& operator<<(ostream& out, const document_t& d)
-{
-    out << "<document>" << endl;
-    for (const auto& e : d)
-        drawTemplate(e, out, 2);
-    return out << "</document>" << endl;
-}
-#else
+// document_t in multi-line so overload drawTemplate instead of operator<<
 void drawTemplate(const document_t& d, ostream& out, size_t position)
 {
     out << string(position, ' ') << "<document>" << endl;
@@ -57,7 +47,6 @@ void drawTemplate(const document_t& d, ostream& out, size_t position)
         drawTemplate(e, out, position + 2);
     out << string(position, ' ') << "</document>" << endl;
 }
-#endif
 
 using history_t = vector<document_t>;
 
@@ -68,46 +57,39 @@ const document_t& current(const history_t& x) { assert(x.size()); return x.back(
 
 class my_class_t { };
 
-void drawTemplate(const my_class_t&, ostream& out, size_t position)
-{ out << string(position, ' ') << "my_class_t" << endl; }
+// my_class is single-line so overload operator<<
+ostream& operator<<(ostream& out, const my_class_t& h)
+{ return out << "my class"; }
 
-#if 0
-ostream& operator<<(ostream& out, const history_t& h)
-{ drawTemplate(current(h), out, 0); return out; }
-#else
+// history_t in multi-line so overload drawTemplate instead of operator<<
 void drawTemplate(const history_t& h, ostream& out, size_t position)
 {
-    #if 1
     out << string(position, ' ') << "<history>" << endl;
     for (const auto& e : h)
         drawTemplate(e, out, position + 2);
     out << string(position, ' ') << "</history>" << endl;
-    #else
-    drawTemplate(current(h), out, position);
-    #endif
 }
-#endif
 
 int main ()
 {
     history_t h(1);
 
+    current(h).emplace_back(string("Hello"));
     current(h).emplace_back(0);
-    current(h).emplace_back(string("Hello!"));
+    current(h).emplace_back(my_class_t());
 
-    drawTemplate(h, cout, 0);
+    drawTemplate(current(h), cout, 0);
     cout << "--------------------------" << endl;
 
     commit(h);
 
-    current(h).emplace_back(my_class_t());
+    current(h)[1] = string("World!");
     current(h).emplace_back(h);
-    current(h)[1] = string("World");
 
-    drawTemplate(h, cout, 0);
+    drawTemplate(current(h), cout, 0);
     cout << "--------------------------" << endl;
 
     undo(h);
 
-    drawTemplate(h, cout, 0);
+    drawTemplate(current(h), cout, 0);
 }
