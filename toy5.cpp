@@ -7,89 +7,106 @@
 
 using namespace std;
 
+/* drawTemplate - API function for T to render itself
+ *
+ * For single-line entities (e.g. PODs), provide an ostream operator<<.
+ * For multi-line, overload drawTemplate (or live without position parameter).
+ */
 template <typename T> // overload for multi-line ostream << x
 void drawTemplate(const T& x, ostream& out, size_t position)
 { out << string(position, ' ') << x << endl; }
 
-class object_t {
-public:
-    template <typename T>
-    object_t(T x) : self_(make_shared<model<T>>(move(x))) { }
+class document_t {
+    struct drawable_t {
+    public:
+        template <typename T>
+        drawable_t(T x) : self_(make_shared<model<T>>(move(x))) { }
 
-    friend void drawTemplate(const object_t& x, ostream& out, size_t position)
-    { x.self_->drawConcept(out, position); }
+        void draw1(ostream& out, size_t position) const
+        { self_->drawConcept(out, position); }
+
+    private:
+        struct calls_drawTemplate_t {
+            virtual ~calls_drawTemplate_t() = default;
+            virtual void drawConcept(ostream&, size_t) const = 0;
+        };
+        template <typename T>
+        struct model : calls_drawTemplate_t {
+            model(T x) : data_(move(x)) { }
+
+            void drawConcept(ostream& out, size_t position) const
+            { drawTemplate(data_, out, position); }
+
+            T data_;
+        };
+
+        shared_ptr<const calls_drawTemplate_t> self_;
+    };
+
+public:
+    void emplace_back (drawable_t p) { d.emplace_back(move(p)); }
+    // document_t in multi-line so overload drawTemplate instead of operator<<
+    friend void drawTemplate(const document_t& d, ostream& out, size_t position)
+    {
+        out << string(position, ' ') << "<document>" << endl;
+        for (const auto& e : d.d)
+            e.draw1(out, position + 2);
+        out << string(position, ' ') << "</document>" << endl;
+    }
+    drawable_t& operator[](int i) { return d[i]; }
 
 private:
-    struct concept_t {
-        virtual ~concept_t() = default;
-        virtual void drawConcept(ostream&, size_t) const = 0;
-    };
-    template <typename T>
-    struct model : concept_t {
-        model(T x) : data_(move(x)) { }
-
-        void drawConcept(ostream& out, size_t position) const
-        { drawTemplate(data_, out, position); }
-
-        T data_;
-    };
-
-    shared_ptr<const concept_t> self_;
+    vector<drawable_t> d;
 };
 
-using document_t = vector<object_t>;
+class history_t {
+public:
+    history_t(size_t size = 1) : x(size) {  }
 
-// document_t in multi-line so overload drawTemplate instead of operator<<
-void drawTemplate(const document_t& d, ostream& out, size_t position)
-{
-    out << string(position, ' ') << "<document>" << endl;
-    for (const auto& e : d)
-        drawTemplate(e, out, position + 2);
-    out << string(position, ' ') << "</document>" << endl;
-}
+    void commit() { assert(x.size()); x.push_back(x.back()); }
+    void undo() { assert(x.size()); x.pop_back(); }
+    document_t& current() { assert(x.size()); return x.back(); }
+    const document_t& current() const { assert(x.size()); return x.back(); }
 
-using history_t = vector<document_t>;
+    // history_t in multi-line so overload drawTemplate instead of operator<<
+    friend void drawTemplate(const history_t& h, ostream& out, size_t position)
+    {
+        out << string(position, ' ') << "<history>" << endl;
+        for (const auto& e : h.x)
+            drawTemplate(e, out, position + 2);
+        out << string(position, ' ') << "</history>" << endl;
+    }
 
-void commit(history_t& x) { assert(x.size()); x.push_back(x.back()); }
-void undo(history_t& x) { assert(x.size()); x.pop_back(); }
-document_t& current(history_t& x) { assert(x.size()); return x.back(); }
-const document_t& current(const history_t& x) { assert(x.size()); return x.back(); }
+private:
+    vector<document_t> x;
+};
 
-class my_class_t { };
-
-// my_class is single-line so overload operator<<
-ostream& operator<<(ostream& out, const my_class_t& h)
-{ return out << "my class"; }
-
-// history_t in multi-line so overload drawTemplate instead of operator<<
-void drawTemplate(const history_t& h, ostream& out, size_t position)
-{
-    out << string(position, ' ') << "<history>" << endl;
-    for (const auto& e : h)
-        drawTemplate(e, out, position + 2);
-    out << string(position, ' ') << "</history>" << endl;
-}
+class my_class_t {
+    // my_class is single-line so overload operator<<
+    friend ostream& operator<<(ostream& out, const my_class_t& h)
+    { return out << "my class"; }
+};
 
 int main ()
 {
-    history_t h(1);
+    history_t h;
 
-    current(h).emplace_back(string("Hello"));
-    current(h).emplace_back(0);
-    current(h).emplace_back(my_class_t());
+    h.current().emplace_back(string("Hello"));
+    h.current().emplace_back(0);
+    h.current().emplace_back(my_class_t());
 
-    drawTemplate(current(h), cout, 0);
+    drawTemplate(h, cout, 0);
     cout << "--------------------------" << endl;
 
-    commit(h);
+    h.commit();
 
-    current(h)[1] = string("World!");
-    current(h).emplace_back(h);
+    h.current()[1] = string("World!");
+    h.current().emplace_back(h);
 
-    drawTemplate(current(h), cout, 0);
+    drawTemplate(h, cout, 0);
     cout << "--------------------------" << endl;
 
-    undo(h);
+    h.undo();
 
-    drawTemplate(current(h), cout, 0);
+    drawTemplate(h, cout, 0);
 }
