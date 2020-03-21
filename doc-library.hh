@@ -13,15 +13,6 @@
 #include <memory> // shared_ptr
 #include <assert.h>
 
-/* draw - API function for T to render itself
- *
- * For single-line entities (e.g. PODs), provide an ostream operator<<.
- * For multi-line, overload draw (or live without position parameter).
- */
-template <typename T> // overload for multi-line ostream << x
-void draw(const T& x, std::ostream& out, size_t position)
-{ out << std::string(position, ' ') << x << std::endl; }
-
 /* document_t - a container of objects that conform to the draw API.
  */
 class document_t {
@@ -42,7 +33,7 @@ class document_t {
             draw_API_binding(T x) : data_(std::move(x)) { }
 
             void call_draw(std::ostream& out, size_t position) const
-            { draw(data_, out, position); }
+            { data_.draw(out, position); }
 
             T data_;
         };
@@ -65,11 +56,10 @@ public:
     drawable_ptr& operator[](int i)
     { return drawable_ptrs[i]; }
 
-    // document_t is multi-line so overload draw instead of operator<<
-    friend void draw(const document_t& doc, std::ostream& out, size_t position)
+    void draw(std::ostream& out, size_t position) const
     {
         out << std::string(position, ' ') << "<document>" << std::endl;
-        for (const auto& ptr : doc.drawable_ptrs)
+        for (const auto& ptr : drawable_ptrs)
             ptr.binding->call_draw(out, position + 2);
         out << std::string(position, ' ') << "</document>" << std::endl;
     }
@@ -92,12 +82,11 @@ public:
     const document_t& current() const
     { assert(documents.size()); return documents.back(); }
 
-    // history_t is multi-line so overload draw instead of operator<<
-    friend void draw(const history_t& h, std::ostream& out, size_t position)
+    void draw(std::ostream& out, size_t position) const
     {
         out << std::string(position, ' ') << "<history>" << std::endl;
-        for (const auto& doc : h.documents)
-            draw(doc, out, position + 2);
+        for (const auto& doc : documents)
+            doc.draw(out, position + 2);
         out << std::string(position, ' ') << "</history>" << std::endl;
     }
 };

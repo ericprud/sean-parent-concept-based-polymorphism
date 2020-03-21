@@ -13,37 +13,53 @@ using namespace std;
 
 /* user-defined drawable types.
  *
- * Note that the draw template in doc-library means that anything with an
- * ostream operator<< is a has a draw function.
+ * These would be more complex classes in a reallistic use case.
  */
 
-// my_class_t - fulfills the draw API with the help of the draw template
+class my_string_t {
+    std::string str;
+
+public:
+    my_string_t (std::string str) : str(str) { }
+    void draw(ostream& out, size_t position) const
+    { out << string(position, ' ') << str << endl; }
+};
+
+class my_int_t {
+    int i;
+
+public:
+    my_int_t (int i) : i(i) { }
+    void draw(ostream& out, size_t position) const
+    { out << string(position, ' ') << i << endl; }
+};
+
 class my_class_t {
-    // my_class is single-line so just overload operator<<
-    friend ostream& operator<<(ostream& out, const my_class_t& h)
-    { return out << "my class"; }
+public:
+    void draw(ostream& out, size_t position) const
+    { out << string(position, ' ') << "my_class" << endl; }
 };
 
 int main ()
 {
     history_t h;
 
-    h.current().add(string("Hello"));
-    h.current().add(0);
+    h.current().add(my_string_t("Hello"));
+    h.current().add(my_int_t(0));
     h.current().add(my_class_t());
 
-    draw(h, cout, 0);
+    h.draw(cout, 0);
     cout << "--------------------------" << endl;
 
     h.commit();
 
-    h.current()[1] = string("World!");
+    h.current()[1] = my_string_t("World!");
     h.current().add(h);
 
-    draw(h, cout, 0);
+    h.draw(cout, 0);
     cout << "--------------------------" << endl;
 
     h.undo();
 
-    draw(h, cout, 0);
+    h.draw(cout, 0);
 }
