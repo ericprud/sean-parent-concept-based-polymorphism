@@ -1,3 +1,12 @@
+/* Example document and document history library, an expansion of Sean Parent's:
+ * https://sean-parent.stlab.cc/papers-and-presentations/#inheritance-is-the-base-class-of-evil
+ * source kinda aligns with:
+ * https://sean-parent.stlab.cc/presentations/2013-03-06-value_semantics/value-semantics.cpp
+ * This maintains the original MIT License.
+ *
+ * ericP <eric.prudhommeaux@janeirodigital.com>, <eric@w3.org>
+ */
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -92,38 +101,3 @@ public:
         out << std::string(position, ' ') << "</history>" << std::endl;
     }
 };
-
-// ^^- doc library -^^
-// vv-  user code  -vv
-
-/* my_class_t - fulfills the draw API with the help of the draw template
- */
-class my_class_t {
-    // my_class is single-line so just overload operator<<
-    friend std::ostream& operator<<(std::ostream& out, const my_class_t& h)
-    { return out << "my class"; }
-};
-
-int main ()
-{
-    history_t h;
-
-    h.current().add(std::string("Hello"));
-    h.current().add(0);
-    h.current().add(my_class_t());
-
-    draw(h, std::cout, 0);
-    std::cout << "--------------------------" << std::endl;
-
-    h.commit();
-
-    h.current()[1] = std::string("World!");
-    h.current().add(h);
-
-    draw(h, std::cout, 0);
-    std::cout << "--------------------------" << std::endl;
-
-    h.undo();
-
-    draw(h, std::cout, 0);
-}
