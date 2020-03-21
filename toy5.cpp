@@ -4,21 +4,18 @@
 #include <memory> // shared_ptr
 #include <assert.h>
 
-using namespace std;
-
 /* draw - API function for T to render itself
  *
  * For single-line entities (e.g. PODs), provide an ostream operator<<.
  * For multi-line, overload draw (or live without position parameter).
  */
 template <typename T> // overload for multi-line ostream << x
-void draw(const T& x, ostream& out, size_t position)
-{ out << string(position, ' ') << x << endl; }
+void draw(const T& x, std::ostream& out, size_t position)
+{ out << std::string(position, ' ') << x << std::endl; }
 
 /* document_t - a container of objects that conform to the draw API.
  */
 class document_t {
-private:
     /* drawable_ptr - shared_ptr to a vtable which invokes the draw API
      */
     struct drawable_ptr {
@@ -26,72 +23,84 @@ private:
          */
         struct draw_API_vtable {
             virtual ~draw_API_vtable() = default;
-            virtual void call_draw(ostream&, size_t) const = 0;
+            virtual void call_draw(std::ostream&, size_t) const = 0;
         };
 
         /* draw_API_binding - templated binding of type to draw API
          */
         template <typename T>
         struct draw_API_binding : draw_API_vtable {
-            draw_API_binding(T x) : data_(move(x)) { }
+            draw_API_binding(T x) : data_(std::move(x)) { }
 
-            void call_draw(ostream& out, size_t position) const
+            void call_draw(std::ostream& out, size_t position) const
             { draw(data_, out, position); }
 
             T data_;
         };
 
+        /* constructor - invokes a draw_API_binding with inferred type
+         */
         template <typename T>
-        drawable_ptr(T x) : self_(make_shared<draw_API_binding<T>>(move(x))) { }
+        drawable_ptr(T x)
+            : binding(std::make_shared<draw_API_binding<T>>(std::move(x)))
+        { }
 
-        shared_ptr<const draw_API_vtable> self_;
+        std::shared_ptr<const draw_API_vtable> binding;
     };
 
-    vector<drawable_ptr> drawable_ptrs;
+    std::vector<drawable_ptr> drawable_ptrs;
 
 public:
-    void add (drawable_ptr p) { drawable_ptrs.emplace_back(move(p)); }
+    void add (drawable_ptr p)
+    { drawable_ptrs.emplace_back(std::move(p)); }
+    drawable_ptr& operator[](int i)
+    { return drawable_ptrs[i]; }
 
     // document_t is multi-line so overload draw instead of operator<<
-    friend void draw(const document_t& d, ostream& out, size_t position)
+    friend void draw(const document_t& doc, std::ostream& out, size_t position)
     {
-        out << string(position, ' ') << "<document>" << endl;
-        for (const auto& e : d.drawable_ptrs)
-            e.self_->call_draw(out, position + 2);
-        out << string(position, ' ') << "</document>" << endl;
+        out << std::string(position, ' ') << "<document>" << std::endl;
+        for (const auto& ptr : doc.drawable_ptrs)
+            ptr.binding->call_draw(out, position + 2);
+        out << std::string(position, ' ') << "</document>" << std::endl;
     }
-    drawable_ptr& operator[](int i) { return drawable_ptrs[i]; }
 };
 
 /* history_t - a container of documents.
  */
 class history_t {
-public:
-    history_t(size_t size = 1) : x(size) {  }
+    std::vector<document_t> documents;
 
-    void commit() { assert(x.size()); x.push_back(x.back()); }
-    void undo() { assert(x.size()); x.pop_back(); }
-    document_t& current() { assert(x.size()); return x.back(); }
-    const document_t& current() const { assert(x.size()); return x.back(); }
+public:
+    history_t(size_t size = 1) : documents(size) {  }
+
+    void commit()
+    { assert(documents.size()); documents.push_back(documents.back()); }
+    void undo()
+    { assert(documents.size()); documents.pop_back(); }
+    document_t& current()
+    { assert(documents.size()); return documents.back(); }
+    const document_t& current() const
+    { assert(documents.size()); return documents.back(); }
 
     // history_t is multi-line so overload draw instead of operator<<
-    friend void draw(const history_t& h, ostream& out, size_t position)
+    friend void draw(const history_t& h, std::ostream& out, size_t position)
     {
-        out << string(position, ' ') << "<history>" << endl;
-        for (const auto& e : h.x)
-            draw(e, out, position + 2);
-        out << string(position, ' ') << "</history>" << endl;
+        out << std::string(position, ' ') << "<history>" << std::endl;
+        for (const auto& doc : h.documents)
+            draw(doc, out, position + 2);
+        out << std::string(position, ' ') << "</history>" << std::endl;
     }
-
-private:
-    vector<document_t> x;
 };
+
+// ^^- doc library -^^
+// vv-  user code  -vv
 
 /* my_class_t - fulfills the draw API with the help of the draw template
  */
 class my_class_t {
     // my_class is single-line so just overload operator<<
-    friend ostream& operator<<(ostream& out, const my_class_t& h)
+    friend std::ostream& operator<<(std::ostream& out, const my_class_t& h)
     { return out << "my class"; }
 };
 
@@ -99,22 +108,22 @@ int main ()
 {
     history_t h;
 
-    h.current().add(string("Hello"));
+    h.current().add(std::string("Hello"));
     h.current().add(0);
     h.current().add(my_class_t());
 
-    draw(h, cout, 0);
-    cout << "--------------------------" << endl;
+    draw(h, std::cout, 0);
+    std::cout << "--------------------------" << std::endl;
 
     h.commit();
 
-    h.current()[1] = string("World!");
+    h.current()[1] = std::string("World!");
     h.current().add(h);
 
-    draw(h, cout, 0);
-    cout << "--------------------------" << endl;
+    draw(h, std::cout, 0);
+    std::cout << "--------------------------" << std::endl;
 
     h.undo();
 
-    draw(h, cout, 0);
+    draw(h, std::cout, 0);
 }
