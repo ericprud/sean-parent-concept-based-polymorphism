@@ -15,6 +15,8 @@ template <typename T> // overload for multi-line ostream << x
 void draw(const T& x, ostream& out, size_t position)
 { out << string(position, ' ') << x << endl; }
 
+/* document_t - a container of objects that conform to the draw API.
+ */
 class document_t {
 private:
     /* drawable_ptr - shared_ptr to a vtable which invokes the draw API
@@ -61,6 +63,8 @@ public:
     drawable_ptr& operator[](int i) { return drawable_ptrs[i]; }
 };
 
+/* history_t - a container of documents.
+ */
 class history_t {
 public:
     history_t(size_t size = 1) : x(size) {  }
@@ -83,6 +87,8 @@ private:
     vector<document_t> x;
 };
 
+/* my_class_t - fulfills the draw API with the help of the draw template
+ */
 class my_class_t {
     // my_class is single-line so just overload operator<<
     friend ostream& operator<<(ostream& out, const my_class_t& h)
