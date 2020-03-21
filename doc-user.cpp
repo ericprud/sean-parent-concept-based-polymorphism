@@ -10,8 +10,14 @@
 #include "doc-library.hh"
 
 using namespace std;
-/* my_class_t - fulfills the draw API with the help of the draw template
+
+/* user-defined drawable types.
+ *
+ * Note that the draw template in doc-library means that anything with an
+ * ostream operator<< is a has a draw function.
  */
+
+// my_class_t - fulfills the draw API with the help of the draw template
 class my_class_t {
     // my_class is single-line so just overload operator<<
     friend ostream& operator<<(ostream& out, const my_class_t& h)
